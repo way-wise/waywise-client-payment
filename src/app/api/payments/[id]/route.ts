@@ -25,7 +25,7 @@ export async function DELETE(
     })
 
     if (milestone) {
-      const totalPaid = milestone.payments.reduce((sum, p) => sum + p.amount, 0)
+      const totalPaid = milestone.payments.reduce((sum: number, p: { amount: number }) => sum + p.amount, 0)
       const newStatus = totalPaid >= milestone.amount ? 'paid' : 
                        new Date() > milestone.dueDate ? 'overdue' : 'pending'
       

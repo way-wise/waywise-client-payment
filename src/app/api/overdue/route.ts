@@ -1,5 +1,18 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
+
+type MilestoneWithRelations = Prisma.MilestoneGetPayload<{
+  include: {
+    project: {
+      include: {
+        client: true
+        projectType: true
+      }
+    }
+    payments: true
+  }
+}>
 
 export async function GET() {
   try {
@@ -26,7 +39,7 @@ export async function GET() {
       orderBy: { dueDate: 'asc' }
     })
 
-    const overdue = milestones.map((milestone: typeof milestones[0]) => {
+    const overdue = milestones.map((milestone: MilestoneWithRelations) => {
       const totalPaid = milestone.payments.reduce((sum: number, p: { amount: number }) => sum + p.amount, 0)
       const remaining = milestone.amount - totalPaid
       return {
