@@ -20,10 +20,21 @@ export default function ProjectTypesPage() {
   }, [])
 
   const fetchTypes = async () => {
-    const res = await fetch('/api/project-types')
-    const data = await res.json()
-    setTypes(data)
-    setLoading(false)
+    try {
+      const res = await fetch('/api/project-types')
+      const data = await res.json()
+      if (Array.isArray(data)) {
+        setTypes(data)
+      } else {
+        console.error('Invalid response format:', data)
+        setTypes([])
+      }
+      setLoading(false)
+    } catch (error) {
+      console.error('Error fetching project types:', error)
+      setTypes([])
+      setLoading(false)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

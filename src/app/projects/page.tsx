@@ -52,20 +52,28 @@ export default function ProjectsPage() {
   }, [])
 
   const fetchData = async () => {
-    const [projectsRes, clientsRes, typesRes] = await Promise.all([
-      fetch('/api/projects'),
-      fetch('/api/clients'),
-      fetch('/api/project-types')
-    ])
-    const [projectsData, clientsData, typesData] = await Promise.all([
-      projectsRes.json(),
-      clientsRes.json(),
-      typesRes.json()
-    ])
-    setProjects(projectsData)
-    setClients(clientsData)
-    setTypes(typesData)
-    setLoading(false)
+    try {
+      const [projectsRes, clientsRes, typesRes] = await Promise.all([
+        fetch('/api/projects'),
+        fetch('/api/clients'),
+        fetch('/api/project-types')
+      ])
+      const [projectsData, clientsData, typesData] = await Promise.all([
+        projectsRes.json(),
+        clientsRes.json(),
+        typesRes.json()
+      ])
+      setProjects(Array.isArray(projectsData) ? projectsData : [])
+      setClients(Array.isArray(clientsData) ? clientsData : [])
+      setTypes(Array.isArray(typesData) ? typesData : [])
+      setLoading(false)
+    } catch (error) {
+      console.error('Error fetching data:', error)
+      setProjects([])
+      setClients([])
+      setTypes([])
+      setLoading(false)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

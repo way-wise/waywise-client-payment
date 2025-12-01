@@ -28,10 +28,21 @@ export default function ClientsPage() {
   }, [])
 
   const fetchClients = async () => {
-    const res = await fetch('/api/clients')
-    const data = await res.json()
-    setClients(data)
-    setLoading(false)
+    try {
+      const res = await fetch('/api/clients')
+      const data = await res.json()
+      if (Array.isArray(data)) {
+        setClients(data)
+      } else {
+        console.error('Invalid response format:', data)
+        setClients([])
+      }
+      setLoading(false)
+    } catch (error) {
+      console.error('Error fetching clients:', error)
+      setClients([])
+      setLoading(false)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

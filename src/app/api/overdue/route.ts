@@ -38,7 +38,11 @@ export async function GET() {
 
     return NextResponse.json(overdue)
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch overdue payments' }, { status: 500 })
+    console.error('Error fetching overdue payments:', error)
+    return NextResponse.json({ 
+      error: 'Failed to fetch overdue payments',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }
 

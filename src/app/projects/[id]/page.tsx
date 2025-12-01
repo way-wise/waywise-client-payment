@@ -54,10 +54,21 @@ export default function ProjectDetailPage() {
   }, [params.id])
 
   const fetchProject = async () => {
-    const res = await fetch(`/api/projects/${params.id}`)
-    const data = await res.json()
-    setProject(data)
-    setLoading(false)
+    try {
+      const res = await fetch(`/api/projects/${params.id}`)
+      const data = await res.json()
+      if (data.error) {
+        console.error('API error:', data)
+        setProject(null)
+      } else {
+        setProject(data)
+      }
+      setLoading(false)
+    } catch (error) {
+      console.error('Error fetching project:', error)
+      setProject(null)
+      setLoading(false)
+    }
   }
 
   const handleMilestoneSubmit = async (e: React.FormEvent) => {

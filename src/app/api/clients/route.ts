@@ -19,7 +19,11 @@ export async function GET() {
     })
     return NextResponse.json(clients)
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch clients' }, { status: 500 })
+    console.error('Error fetching clients:', error)
+    return NextResponse.json({ 
+      error: 'Failed to fetch clients',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }
 

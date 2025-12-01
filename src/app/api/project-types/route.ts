@@ -8,7 +8,11 @@ export async function GET() {
     })
     return NextResponse.json(types)
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch project types' }, { status: 500 })
+    console.error('Error fetching project types:', error)
+    return NextResponse.json({ 
+      error: 'Failed to fetch project types',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }
 
