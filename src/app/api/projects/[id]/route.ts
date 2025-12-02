@@ -48,29 +48,41 @@ export async function PUT(
     const { id } = await params
     const body = await request.json()
     
-    // Build project data with proper defaults
+    console.log('Updating project:', id, 'with data:', body)
+    
+    // Build project data - only include fields that are provided
     const projectData: any = {
       name: body.name,
       clientId: body.clientId,
       projectTypeId: body.projectTypeId,
       budget: parseFloat(body.budget),
       description: body.description || null,
-      status: body.status
+      status: body.status || 'active'
     }
 
-    // Add billing type (with default)
-    if (body.billingType !== undefined) {
+    // Only add billingType if it exists in the request, otherwise use default
+    if (body.billingType !== undefined && body.billingType !== null) {
       projectData.billingType = body.billingType
-    } else {
+    } else if (body.billingType === undefined) {
+      // Only set default if not provided at all
       projectData.billingType = 'fixed'
     }
 
-    // Add hourly rate (nullable)
-    if (body.hourlyRate !== undefined && body.hourlyRate !== null && body.hourlyRate !== '') {
-      projectData.hourlyRate = parseFloat(body.hourlyRate)
-    } else {
-      projectData.hourlyRate = null
+    // Handle hourly rate
+    if (body.hourlyRate !== undefined) {
+      if (body.hourlyRate === null || body.hourlyRate === '') {
+        projectData.hourlyRate = null
+      } else {
+        const rate = parseFloat(body.hourlyRate)
+        if (!isNaN(rate)) {
+          projectData.hourlyRate = rate
+        } else {
+          projectData.hourlyRate = null
+        }
+      }
     }
+
+    console.log('Project data to update:', projectData)
 
     const project = await prisma.project.update({
       where: { id },
@@ -83,9 +95,12 @@ export async function PUT(
     return NextResponse.json(project)
   } catch (error) {
     console.error('Error updating project:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorStack = error instanceof Error ? error.stack : undefined
+    console.error('Error details:', { message: errorMessage, stack: errorStack })
     return NextResponse.json({ 
       error: 'Failed to update project',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: errorMessage
     }, { status: 500 })
   }
 }

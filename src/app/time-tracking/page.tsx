@@ -54,18 +54,27 @@ export default function TimeTrackingPage() {
   }, [selectedDate])
 
   const fetchWeeklyData = async () => {
+    setLoading(true)
     try {
       const res = await fetch(`/api/weekly-time?date=${selectedDate}`)
       if (!res.ok) {
-        console.error('Failed to fetch weekly data')
+        const errorData = await res.json().catch(() => ({}))
+        console.error('Failed to fetch weekly data:', errorData)
+        setWeeklyData(null)
         setLoading(false)
         return
       }
       const data = await res.json()
-      setWeeklyData(data)
+      if (data.error) {
+        console.error('API returned error:', data)
+        setWeeklyData(null)
+      } else {
+        setWeeklyData(data)
+      }
       setLoading(false)
     } catch (error) {
       console.error('Error fetching weekly data:', error)
+      setWeeklyData(null)
       setLoading(false)
     }
   }
@@ -187,7 +196,8 @@ export default function TimeTrackingPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {weeklyData.projectTotals.map((item) => (
+                    {weeklyData.projectTotals && weeklyData.projectTotals.length > 0 ? (
+                      weeklyData.projectTotals.map((item) => (
                       <tr key={item.project.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {item.project.name}
@@ -205,7 +215,14 @@ export default function TimeTrackingPage() {
                           ${item.totalAmount.toFixed(2)}
                         </td>
                       </tr>
-                    ))}
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                          No project data for this week
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -225,7 +242,8 @@ export default function TimeTrackingPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {weeklyData.assigneeTotals.map((item) => (
+                    {weeklyData.assigneeTotals && weeklyData.assigneeTotals.length > 0 ? (
+                      weeklyData.assigneeTotals.map((item) => (
                       <tr key={item.assignee.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {item.assignee.name}
@@ -234,7 +252,14 @@ export default function TimeTrackingPage() {
                           {item.totalHours.toFixed(2)}
                         </td>
                       </tr>
-                    ))}
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={2} className="px-6 py-8 text-center text-gray-500">
+                          No assignee data for this week
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -257,7 +282,8 @@ export default function TimeTrackingPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {weeklyData.entries.map((entry) => (
+                    {weeklyData.entries && weeklyData.entries.length > 0 ? (
+                      weeklyData.entries.map((entry) => (
                       <tr key={entry.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {new Date(entry.date).toLocaleDateString()}
@@ -275,7 +301,14 @@ export default function TimeTrackingPage() {
                           {entry.description || '-'}
                         </td>
                       </tr>
-                    ))}
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                          No time entries for this week
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -284,6 +317,7 @@ export default function TimeTrackingPage() {
         ) : (
           <div className="bg-white rounded-lg shadow p-8 text-center">
             <p className="text-gray-500 text-lg">No time entries for this week</p>
+            <p className="text-gray-400 text-sm mt-2">Try selecting a different week or add time entries</p>
           </div>
         )}
       </main>
