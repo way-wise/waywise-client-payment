@@ -37,6 +37,15 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if DATABASE_URL is set
+    if (!process.env.DATABASE_URL) {
+      console.error('DATABASE_URL is not set in environment variables')
+      return NextResponse.json({ 
+        error: 'Database connection not configured',
+        details: 'DATABASE_URL environment variable is missing. Please configure it in Vercel settings.'
+      }, { status: 500 })
+    }
+
     const body = await request.json()
     const type = await prisma.projectType.create({
       data: { name: body.name }
@@ -44,9 +53,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(type)
   } catch (error) {
     console.error('Error creating project type:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    
+    // Check if it's a DATABASE_URL error
+    if (errorMessage.includes('DATABASE_URL') || errorMessage.includes('Environment variable')) {
+      return NextResponse.json({ 
+        error: 'Database connection not configured',
+        details: 'DATABASE_URL environment variable is missing or invalid. Please configure it in Vercel settings.'
+      }, { status: 500 })
+    }
+    
     return NextResponse.json({ 
       error: 'Failed to create project type',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: errorMessage
     }, { status: 500 })
   }
 }
