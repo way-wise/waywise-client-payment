@@ -53,13 +53,26 @@ interface WeeklyData {
 export default function Home() {
   const [weeklyData, setWeeklyData] = useState<WeeklyData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date()
+    const day = date.getDay()
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1) // Monday
+    date.setDate(diff)
+    return date.toISOString().split('T')[0]
+  })
+  const [endDate, setEndDate] = useState(() => {
+    const date = new Date()
+    const day = date.getDay()
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1) // Monday
+    date.setDate(diff)
+    date.setDate(date.getDate() + 6) // Sunday
+    return date.toISOString().split('T')[0]
+  })
   const [filterType, setFilterType] = useState<'all' | 'hourly' | 'fixed'>('all')
-  const [weekView, setWeekView] = useState<'current' | 'previous' | 'custom'>('current')
 
   useEffect(() => {
     fetchWeeklyData()
-  }, [selectedDate, weekView])
+  }, [startDate, endDate])
 
   const getWeekRange = (date: Date = new Date()) => {
     const start = new Date(date)
@@ -88,16 +101,7 @@ export default function Home() {
   const fetchWeeklyData = async () => {
     setLoading(true)
     try {
-      let dateToUse = new Date().toISOString().split('T')[0]
-      
-      if (weekView === 'previous') {
-        const { start } = getPreviousWeek()
-        dateToUse = start.toISOString().split('T')[0]
-      } else if (weekView === 'custom') {
-        dateToUse = selectedDate
-      }
-
-      const res = await fetch(`/api/weekly-time?date=${dateToUse}`)
+      const res = await fetch(`/api/weekly-time?startDate=${startDate}&endDate=${endDate}`)
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
         console.error('API error:', errorData)
@@ -120,11 +124,26 @@ export default function Home() {
     }
   }
 
-  const { start, end } = weekView === 'current' 
-    ? getCurrentWeek() 
-    : weekView === 'previous' 
-    ? getPreviousWeek() 
-    : getWeekRange(new Date(selectedDate))
+  const handleQuickSelect = (type: 'current' | 'previous' | 'thisMonth') => {
+    const today = new Date()
+    if (type === 'current') {
+      const range = getCurrentWeek()
+      setStartDate(range.start.toISOString().split('T')[0])
+      setEndDate(range.end.toISOString().split('T')[0])
+    } else if (type === 'previous') {
+      const range = getPreviousWeek()
+      setStartDate(range.start.toISOString().split('T')[0])
+      setEndDate(range.end.toISOString().split('T')[0])
+    } else if (type === 'thisMonth') {
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1)
+      const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+      setStartDate(firstDay.toISOString().split('T')[0])
+      setEndDate(lastDay.toISOString().split('T')[0])
+    }
+  }
+
+  const start = new Date(startDate)
+  const end = new Date(endDate)
 
   const filteredProjects = weeklyData?.projectTotals.filter(item => {
     if (filterType === 'all') return true
@@ -207,41 +226,50 @@ export default function Home() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Week Selection</label>
-              <select
-                value={weekView}
-                onChange={(e) => {
-                  setWeekView(e.target.value as 'current' | 'previous' | 'custom')
-                  if (e.target.value !== 'custom') {
-                    fetchWeeklyData()
-                  }
-                }}
+              <label className="block text-sm font-medium text-gray-700 mb-2">From Date</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
-              >
-                <option value="current">Current Week</option>
-                <option value="previous">Previous Week</option>
-                <option value="custom">Custom Date</option>
-              </select>
+              />
             </div>
-            {weekView === 'custom' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Select Date</label>
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => {
-                    setSelectedDate(e.target.value)
-                    fetchWeeklyData()
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
-                />
-              </div>
-            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">To Date</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
+              />
+            </div>
           </div>
           <div className="mt-4 pt-4 border-t">
-            <p className="text-sm text-gray-600">
-              <span className="font-medium">Week:</span> {start.toLocaleDateString()} - {end.toLocaleDateString()}
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-600">
+                <span className="font-medium">Date Range:</span> {start.toLocaleDateString()} - {end.toLocaleDateString()}
+              </p>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => handleQuickSelect('current')}
+                  className="px-3 py-1 text-xs text-gray-700 hover:bg-gray-100 rounded-md border border-gray-300"
+                >
+                  Current Week
+                </button>
+                <button
+                  onClick={() => handleQuickSelect('previous')}
+                  className="px-3 py-1 text-xs text-gray-700 hover:bg-gray-100 rounded-md border border-gray-300"
+                >
+                  Previous Week
+                </button>
+                <button
+                  onClick={() => handleQuickSelect('thisMonth')}
+                  className="px-3 py-1 text-xs text-gray-700 hover:bg-gray-100 rounded-md border border-gray-300"
+                >
+                  This Month
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 

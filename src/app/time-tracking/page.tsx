@@ -47,16 +47,30 @@ interface WeeklyData {
 export default function TimeTrackingPage() {
   const [weeklyData, setWeeklyData] = useState<WeeklyData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date()
+    const day = date.getDay()
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1) // Monday
+    date.setDate(diff)
+    return date.toISOString().split('T')[0]
+  })
+  const [endDate, setEndDate] = useState(() => {
+    const date = new Date()
+    const day = date.getDay()
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1) // Monday
+    date.setDate(diff)
+    date.setDate(date.getDate() + 6) // Sunday
+    return date.toISOString().split('T')[0]
+  })
 
   useEffect(() => {
     fetchWeeklyData()
-  }, [selectedDate])
+  }, [startDate, endDate])
 
   const fetchWeeklyData = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/weekly-time?date=${selectedDate}`)
+      const res = await fetch(`/api/weekly-time?startDate=${startDate}&endDate=${endDate}`)
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
         console.error('Failed to fetch weekly data:', errorData)
@@ -91,7 +105,28 @@ export default function TimeTrackingPage() {
     return { start, end }
   }
 
-  const { start, end } = getWeekRange(new Date(selectedDate))
+  const handleQuickSelect = (type: 'current' | 'previous' | 'thisMonth') => {
+    const today = new Date()
+    if (type === 'current') {
+      const range = getWeekRange(today)
+      setStartDate(range.start.toISOString().split('T')[0])
+      setEndDate(range.end.toISOString().split('T')[0])
+    } else if (type === 'previous') {
+      const lastWeek = new Date(today)
+      lastWeek.setDate(lastWeek.getDate() - 7)
+      const range = getWeekRange(lastWeek)
+      setStartDate(range.start.toISOString().split('T')[0])
+      setEndDate(range.end.toISOString().split('T')[0])
+    } else if (type === 'thisMonth') {
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1)
+      const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+      setStartDate(firstDay.toISOString().split('T')[0])
+      setEndDate(lastDay.toISOString().split('T')[0])
+    }
+  }
+
+  const start = new Date(startDate)
+  const end = new Date(endDate)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -128,18 +163,50 @@ export default function TimeTrackingPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Weekly Time Tracking</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Time Tracking</h2>
             <p className="text-gray-600">
-              Week: {start.toLocaleDateString()} - {end.toLocaleDateString()}
+              Date Range: {start.toLocaleDateString()} - {end.toLocaleDateString()}
             </p>
           </div>
           <div className="flex items-center space-x-4">
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
-            />
+            <div className="flex items-center space-x-2">
+              <label className="text-sm text-gray-600">From:</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <label className="text-sm text-gray-600">To:</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
+              />
+            </div>
+            <div className="flex items-center space-x-2 border-l pl-4">
+              <button
+                onClick={() => handleQuickSelect('current')}
+                className="px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+              >
+                Current Week
+              </button>
+              <button
+                onClick={() => handleQuickSelect('previous')}
+                className="px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+              >
+                Previous Week
+              </button>
+              <button
+                onClick={() => handleQuickSelect('thisMonth')}
+                className="px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+              >
+                This Month
+              </button>
+            </div>
             <Link
               href="/time-entries"
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"

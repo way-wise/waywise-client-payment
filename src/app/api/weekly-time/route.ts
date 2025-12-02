@@ -26,11 +26,33 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url)
-    const weekDate = searchParams.get('date') 
-      ? new Date(searchParams.get('date')!) 
-      : new Date()
-
-    const { start, end } = getWeekRange(weekDate)
+    
+    // Support both date range and single date
+    const startDateParam = searchParams.get('startDate')
+    const endDateParam = searchParams.get('endDate')
+    const dateParam = searchParams.get('date')
+    
+    let start: Date
+    let end: Date
+    
+    if (startDateParam && endDateParam) {
+      // Use date range
+      start = new Date(startDateParam)
+      start.setHours(0, 0, 0, 0)
+      end = new Date(endDateParam)
+      end.setHours(23, 59, 59, 999)
+    } else if (dateParam) {
+      // Use single date (calculate week range)
+      const weekDate = new Date(dateParam)
+      const range = getWeekRange(weekDate)
+      start = range.start
+      end = range.end
+    } else {
+      // Default to current week
+      const range = getWeekRange(new Date())
+      start = range.start
+      end = range.end
+    }
 
     // Get all time entries for the week
     const timeEntries = await prisma.timeEntry.findMany({
