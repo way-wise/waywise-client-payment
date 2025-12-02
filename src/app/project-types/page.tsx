@@ -22,6 +22,13 @@ export default function ProjectTypesPage() {
   const fetchTypes = async () => {
     try {
       const res = await fetch('/api/project-types')
+      if (!res.ok) {
+        const errorData = await res.json()
+        console.error('API error:', errorData)
+        setTypes([])
+        setLoading(false)
+        return
+      }
       const data = await res.json()
       if (Array.isArray(data)) {
         setTypes(data)
