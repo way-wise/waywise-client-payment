@@ -3,6 +3,13 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET() {
   try {
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json({ 
+        error: 'Database connection not configured',
+        details: 'DATABASE_URL environment variable is missing.'
+      }, { status: 500 })
+    }
+
     const projects = await prisma.project.findMany({
       include: {
         client: true,
@@ -27,18 +34,33 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json({ 
+        error: 'Database connection not configured',
+        details: 'DATABASE_URL environment variable is missing.'
+      }, { status: 500 })
+    }
+
     const body = await request.json()
+    const projectData: any = {
+      name: body.name,
+      clientId: body.clientId,
+      projectTypeId: body.projectTypeId,
+      budget: parseFloat(body.budget),
+      description: body.description,
+      status: body.status || 'active'
+    }
+
+    // Add new fields if they exist in the schema
+    if (body.hourlyRate !== undefined) {
+      projectData.hourlyRate = body.hourlyRate ? parseFloat(body.hourlyRate) : null
+    }
+    if (body.billingType !== undefined) {
+      projectData.billingType = body.billingType || 'fixed'
+    }
+
     const project = await prisma.project.create({
-      data: {
-        name: body.name,
-        clientId: body.clientId,
-        projectTypeId: body.projectTypeId,
-        budget: parseFloat(body.budget),
-        hourlyRate: body.hourlyRate ? parseFloat(body.hourlyRate) : null,
-        billingType: body.billingType || 'fixed',
-        description: body.description,
-        status: body.status || 'active'
-      },
+      data: projectData,
       include: {
         client: true,
         projectType: true
@@ -46,7 +68,11 @@ export async function POST(request: NextRequest) {
     })
     return NextResponse.json(project)
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to create project' }, { status: 500 })
+    console.error('Error creating project:', error)
+    return NextResponse.json({ 
+      error: 'Failed to create project',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }
 

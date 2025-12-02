@@ -38,20 +38,35 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json({ 
+        error: 'Database connection not configured',
+        details: 'DATABASE_URL environment variable is missing.'
+      }, { status: 500 })
+    }
+
     const { id } = await params
     const body = await request.json()
+    const projectData: any = {
+      name: body.name,
+      clientId: body.clientId,
+      projectTypeId: body.projectTypeId,
+      budget: parseFloat(body.budget),
+      description: body.description,
+      status: body.status
+    }
+
+    // Add new fields if they exist in the schema
+    if (body.hourlyRate !== undefined) {
+      projectData.hourlyRate = body.hourlyRate ? parseFloat(body.hourlyRate) : null
+    }
+    if (body.billingType !== undefined) {
+      projectData.billingType = body.billingType || 'fixed'
+    }
+
     const project = await prisma.project.update({
       where: { id },
-      data: {
-        name: body.name,
-        clientId: body.clientId,
-        projectTypeId: body.projectTypeId,
-        budget: parseFloat(body.budget),
-        hourlyRate: body.hourlyRate ? parseFloat(body.hourlyRate) : null,
-        billingType: body.billingType || 'fixed',
-        description: body.description,
-        status: body.status
-      },
+      data: projectData,
       include: {
         client: true,
         projectType: true
@@ -59,7 +74,11 @@ export async function PUT(
     })
     return NextResponse.json(project)
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to update project' }, { status: 500 })
+    console.error('Error updating project:', error)
+    return NextResponse.json({ 
+      error: 'Failed to update project',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }
 
