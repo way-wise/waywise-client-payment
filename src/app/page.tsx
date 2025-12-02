@@ -124,7 +124,7 @@ export default function Home() {
     }
   }
 
-  const handleQuickSelect = (type: 'current' | 'previous' | 'thisMonth') => {
+  const handleQuickSelect = (type: 'current' | 'previous' | 'thisMonth' | 'previousMonth') => {
     const today = new Date()
     if (type === 'current') {
       const range = getCurrentWeek()
@@ -137,6 +137,11 @@ export default function Home() {
     } else if (type === 'thisMonth') {
       const firstDay = new Date(today.getFullYear(), today.getMonth(), 1)
       const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+      setStartDate(firstDay.toISOString().split('T')[0])
+      setEndDate(lastDay.toISOString().split('T')[0])
+    } else if (type === 'previousMonth') {
+      const firstDay = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+      const lastDay = new Date(today.getFullYear(), today.getMonth(), 0)
       setStartDate(firstDay.toISOString().split('T')[0])
       setEndDate(lastDay.toISOString().split('T')[0])
     }
@@ -267,6 +272,12 @@ export default function Home() {
                   className="px-3 py-1 text-xs text-gray-700 hover:bg-gray-100 rounded-md border border-gray-300"
                 >
                   This Month
+                </button>
+                <button
+                  onClick={() => handleQuickSelect('previousMonth')}
+                  className="px-3 py-1 text-xs text-gray-700 hover:bg-gray-100 rounded-md border border-gray-300"
+                >
+                  Previous Month
                 </button>
               </div>
             </div>

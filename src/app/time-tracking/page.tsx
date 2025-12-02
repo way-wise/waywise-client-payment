@@ -105,7 +105,7 @@ export default function TimeTrackingPage() {
     return { start, end }
   }
 
-  const handleQuickSelect = (type: 'current' | 'previous' | 'thisMonth') => {
+  const handleQuickSelect = (type: 'current' | 'previous' | 'thisMonth' | 'previousMonth') => {
     const today = new Date()
     if (type === 'current') {
       const range = getWeekRange(today)
@@ -120,6 +120,11 @@ export default function TimeTrackingPage() {
     } else if (type === 'thisMonth') {
       const firstDay = new Date(today.getFullYear(), today.getMonth(), 1)
       const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+      setStartDate(firstDay.toISOString().split('T')[0])
+      setEndDate(lastDay.toISOString().split('T')[0])
+    } else if (type === 'previousMonth') {
+      const firstDay = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+      const lastDay = new Date(today.getFullYear(), today.getMonth(), 0)
       setStartDate(firstDay.toISOString().split('T')[0])
       setEndDate(lastDay.toISOString().split('T')[0])
     }
@@ -205,6 +210,12 @@ export default function TimeTrackingPage() {
                 className="px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
               >
                 This Month
+              </button>
+              <button
+                onClick={() => handleQuickSelect('previousMonth')}
+                className="px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+              >
+                Previous Month
               </button>
             </div>
             <Link
