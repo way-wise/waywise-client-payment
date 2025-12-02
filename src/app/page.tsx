@@ -138,7 +138,12 @@ export default function Home() {
     
     // Check if project has payments (we'll enhance this later with actual payment tracking)
     // For now, show Pending for hourly projects with hours
+    // TODO: Check actual payments to determine if completed
     return 'Pending'
+  }
+  
+  const isStatusCompleted = (status: string) => {
+    return status === 'Completed' || status === 'Fixed Price'
   }
 
   return (
@@ -320,7 +325,7 @@ export default function Home() {
                           ).join(', ') || 'N/A'
                       
                       const status = getPaymentStatus(item)
-                      const isCompleted = status === 'Completed'
+                      const isCompleted = isStatusCompleted(status)
 
                       return (
                         <tr key={item.project.id} className="hover:bg-gray-50">
