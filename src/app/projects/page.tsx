@@ -43,6 +43,8 @@ export default function ProjectsPage() {
     clientId: '',
     projectTypeId: '',
     budget: '',
+    billingType: 'fixed',
+    hourlyRate: '',
     description: '',
     status: 'active'
   })
@@ -91,20 +93,22 @@ export default function ProjectsPage() {
       fetchData()
       setShowForm(false)
       setEditing(null)
-      setFormData({ name: '', clientId: '', projectTypeId: '', budget: '', description: '', status: 'active' })
+      setFormData({ name: '', clientId: '', projectTypeId: '', budget: '', billingType: 'fixed', hourlyRate: '', description: '', status: 'active' })
     }
   }
 
   const handleEdit = (project: Project) => {
     setEditing(project)
-    setFormData({
-      name: project.name,
-      clientId: project.client.id,
-      projectTypeId: project.projectType.id,
-      budget: project.budget.toString(),
-      description: project.description || '',
-      status: project.status
-    })
+      setFormData({
+        name: project.name,
+        clientId: project.client.id,
+        projectTypeId: project.projectType.id,
+        budget: project.budget.toString(),
+        billingType: (project as any).billingType || 'fixed',
+        hourlyRate: (project as any).hourlyRate ? (project as any).hourlyRate.toString() : '',
+        description: project.description || '',
+        status: project.status
+      })
     setShowForm(true)
   }
 
@@ -127,7 +131,7 @@ export default function ProjectsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center space-x-8">
-              <Link href="/" className="text-xl font-bold text-gray-900">Payment Tracker</Link>
+              <Link href="/" className="text-xl font-bold text-gray-900">Project Time Tracking</Link>
               <div className="flex space-x-4">
                 <Link href="/" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
                   Dashboard
@@ -137,6 +141,12 @@ export default function ProjectsPage() {
                 </Link>
                 <Link href="/projects" className="text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
                   Projects
+                </Link>
+                <Link href="/time-tracking" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                  Time Tracking
+                </Link>
+                <Link href="/assignees" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                  Assignees
                 </Link>
                 <Link href="/project-types" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
                   Project Types
@@ -157,7 +167,7 @@ export default function ProjectsPage() {
             onClick={() => {
               setShowForm(true)
               setEditing(null)
-              setFormData({ name: '', clientId: '', projectTypeId: '', budget: '', description: '', status: 'active' })
+              setFormData({ name: '', clientId: '', projectTypeId: '', budget: '', billingType: 'fixed', hourlyRate: '', description: '', status: 'active' })
             }}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
           >
@@ -211,15 +221,16 @@ export default function ProjectsPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Budget *</label>
-                  <input
-                    type="number"
-                    step="0.01"
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Billing Type *</label>
+                  <select
                     required
-                    value={formData.budget}
-                    onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                    value={formData.billingType}
+                    onChange={(e) => setFormData({ ...formData, billingType: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
-                  />
+                  >
+                    <option value="fixed">Fixed Price</option>
+                    <option value="hourly">Hourly</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
@@ -232,6 +243,35 @@ export default function ProjectsPage() {
                     <option value="completed">Completed</option>
                     <option value="on-hold">On Hold</option>
                   </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {formData.billingType === 'fixed' ? 'Budget *' : 'Budget'}
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required={formData.billingType === 'fixed'}
+                    value={formData.budget}
+                    onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {formData.billingType === 'hourly' ? 'Hourly Rate *' : 'Hourly Rate'}
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required={formData.billingType === 'hourly'}
+                    value={formData.hourlyRate}
+                    onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
+                    placeholder="50.00"
+                  />
                 </div>
               </div>
               <div>

@@ -47,6 +47,8 @@ export async function PUT(
         clientId: body.clientId,
         projectTypeId: body.projectTypeId,
         budget: parseFloat(body.budget),
+        hourlyRate: body.hourlyRate ? parseFloat(body.hourlyRate) : null,
+        billingType: body.billingType || 'fixed',
         description: body.description,
         status: body.status
       },

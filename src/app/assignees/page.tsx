@@ -3,51 +3,53 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 
-interface Client {
+interface Assignee {
   id: string
   name: string
   email: string | null
   phone: string | null
-  address: string | null
 }
 
-export default function ClientsPage() {
-  const [clients, setClients] = useState<Client[]>([])
+export default function AssigneesPage() {
+  const [assignees, setAssignees] = useState<Assignee[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [editing, setEditing] = useState<Client | null>(null)
+  const [editing, setEditing] = useState<Assignee | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    phone: '',
-    address: ''
+    phone: ''
   })
 
   useEffect(() => {
-    fetchClients()
+    fetchAssignees()
   }, [])
 
-  const fetchClients = async () => {
+  const fetchAssignees = async () => {
     try {
-      const res = await fetch('/api/clients')
+      const res = await fetch('/api/assignees')
+      if (!res.ok) {
+        console.error('Failed to fetch assignees')
+        setLoading(false)
+        return
+      }
       const data = await res.json()
       if (Array.isArray(data)) {
-        setClients(data)
+        setAssignees(data)
       } else {
-        console.error('Invalid response format:', data)
-        setClients([])
+        setAssignees([])
       }
       setLoading(false)
     } catch (error) {
-      console.error('Error fetching clients:', error)
-      setClients([])
+      console.error('Error fetching assignees:', error)
+      setAssignees([])
       setLoading(false)
     }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const url = editing ? `/api/clients/${editing.id}` : '/api/clients'
+    const url = editing ? `/api/assignees/${editing.id}` : '/api/assignees'
     const method = editing ? 'PUT' : 'POST'
 
     const res = await fetch(url, {
@@ -57,28 +59,27 @@ export default function ClientsPage() {
     })
 
     if (res.ok) {
-      fetchClients()
+      fetchAssignees()
       setShowForm(false)
       setEditing(null)
-      setFormData({ name: '', email: '', phone: '', address: '' })
+      setFormData({ name: '', email: '', phone: '' })
     }
   }
 
-  const handleEdit = (client: Client) => {
-    setEditing(client)
+  const handleEdit = (assignee: Assignee) => {
+    setEditing(assignee)
     setFormData({
-      name: client.name,
-      email: client.email || '',
-      phone: client.phone || '',
-      address: client.address || ''
+      name: assignee.name,
+      email: assignee.email || '',
+      phone: assignee.phone || ''
     })
     setShowForm(true)
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this client?')) return
-    const res = await fetch(`/api/clients/${id}`, { method: 'DELETE' })
-    if (res.ok) fetchClients()
+    if (!confirm('Are you sure you want to delete this assignee?')) return
+    const res = await fetch(`/api/assignees/${id}`, { method: 'DELETE' })
+    if (res.ok) fetchAssignees()
   }
 
   return (
@@ -92,11 +93,17 @@ export default function ClientsPage() {
                 <Link href="/" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
                   Dashboard
                 </Link>
-                <Link href="/clients" className="text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
+                <Link href="/clients" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
                   Clients
                 </Link>
                 <Link href="/projects" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
                   Projects
+                </Link>
+                <Link href="/time-tracking" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                  Time Tracking
+                </Link>
+                <Link href="/assignees" className="text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
+                  Assignees
                 </Link>
                 <Link href="/project-types" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
                   Project Types
@@ -110,24 +117,24 @@ export default function ClientsPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Clients</h2>
-            <p className="text-gray-600">Manage your clients</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Assignees</h2>
+            <p className="text-gray-600">Manage team members who work on projects</p>
           </div>
           <button
             onClick={() => {
               setShowForm(true)
               setEditing(null)
-              setFormData({ name: '', email: '', phone: '', address: '' })
+              setFormData({ name: '', email: '', phone: '' })
             }}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
           >
-            Add Client
+            Add Assignee
           </button>
         </div>
 
         {showForm && (
           <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h3 className="text-lg font-semibold mb-4">{editing ? 'Edit' : 'Add'} Client</h3>
+            <h3 className="text-lg font-semibold mb-4">{editing ? 'Edit' : 'Add'} Assignee</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
@@ -159,15 +166,6 @@ export default function ClientsPage() {
                   />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                <textarea
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
-                  rows={2}
-                />
-              </div>
               <div className="flex space-x-2">
                 <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
                   {editing ? 'Update' : 'Create'}
@@ -197,26 +195,24 @@ export default function ClientsPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Address</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {clients.map((client) => (
-                  <tr key={client.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{client.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{client.email || '-'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{client.phone || '-'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{client.address || '-'}</td>
+                {assignees.map((assignee) => (
+                  <tr key={assignee.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{assignee.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{assignee.email || '-'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{assignee.phone || '-'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <button
-                        onClick={() => handleEdit(client)}
+                        onClick={() => handleEdit(assignee)}
                         className="text-blue-600 hover:text-blue-800 mr-4"
                       >
                         Edit
                       </button>
                       <button
-                        onClick={() => handleDelete(client.id)}
+                        onClick={() => handleDelete(assignee.id)}
                         className="text-red-600 hover:text-red-800"
                       >
                         Delete
