@@ -53,15 +53,9 @@ export async function PUT(
       projectTypeId: body.projectTypeId,
       budget: parseFloat(body.budget),
       description: body.description,
-      status: body.status
-    }
-
-    // Add new fields if they exist in the schema
-    if (body.hourlyRate !== undefined) {
-      projectData.hourlyRate = body.hourlyRate ? parseFloat(body.hourlyRate) : null
-    }
-    if (body.billingType !== undefined) {
-      projectData.billingType = body.billingType || 'fixed'
+      status: body.status,
+      billingType: body.billingType || 'fixed',
+      hourlyRate: body.hourlyRate && body.hourlyRate !== '' ? parseFloat(body.hourlyRate) : null
     }
 
     const project = await prisma.project.update({

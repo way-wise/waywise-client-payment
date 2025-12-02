@@ -42,21 +42,29 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+    
+    // Build project data with proper defaults
     const projectData: any = {
       name: body.name,
       clientId: body.clientId,
       projectTypeId: body.projectTypeId,
       budget: parseFloat(body.budget),
-      description: body.description,
+      description: body.description || null,
       status: body.status || 'active'
     }
 
-    // Add new fields if they exist in the schema
-    if (body.hourlyRate !== undefined) {
-      projectData.hourlyRate = body.hourlyRate ? parseFloat(body.hourlyRate) : null
+    // Add billing type (with default)
+    if (body.billingType) {
+      projectData.billingType = body.billingType
+    } else {
+      projectData.billingType = 'fixed'
     }
-    if (body.billingType !== undefined) {
-      projectData.billingType = body.billingType || 'fixed'
+
+    // Add hourly rate (nullable)
+    if (body.hourlyRate !== undefined && body.hourlyRate !== null && body.hourlyRate !== '') {
+      projectData.hourlyRate = parseFloat(body.hourlyRate)
+    } else {
+      projectData.hourlyRate = null
     }
 
     const project = await prisma.project.create({
@@ -69,9 +77,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(project)
   } catch (error) {
     console.error('Error creating project:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    console.error('Full error:', error)
     return NextResponse.json({ 
       error: 'Failed to create project',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: errorMessage
     }, { status: 500 })
   }
 }
