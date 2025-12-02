@@ -99,16 +99,23 @@ export default function Home() {
 
       const res = await fetch(`/api/weekly-time?date=${dateToUse}`)
       if (!res.ok) {
-        const errorData = await res.json()
+        const errorData = await res.json().catch(() => ({}))
         console.error('API error:', errorData)
+        setWeeklyData(null)
         setLoading(false)
         return
       }
       const data = await res.json()
-      setWeeklyData(data)
+      if (data.error) {
+        console.error('API returned error:', data)
+        setWeeklyData(null)
+      } else {
+        setWeeklyData(data)
+      }
       setLoading(false)
     } catch (error) {
       console.error('Error fetching weekly data:', error)
+      setWeeklyData(null)
       setLoading(false)
     }
   }
@@ -263,6 +270,10 @@ export default function Home() {
               <p className="text-3xl font-bold text-blue-600">{filteredProjects.length}</p>
             </div>
           </div>
+        ) : !loading ? (
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <p className="text-gray-500 text-center">No time entries found for this week</p>
+          </div>
         ) : null}
 
         {/* Main Table */}
@@ -276,7 +287,7 @@ export default function Home() {
               </div>
             </div>
           </div>
-        ) : (
+        ) : weeklyData && weeklyData.projectTotals && weeklyData.projectTotals.length > 0 ? (
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">Project Details</h3>
@@ -383,7 +394,12 @@ export default function Home() {
               </table>
             </div>
           </div>
-        )}
+        ) : !loading ? (
+          <div className="bg-white rounded-lg shadow p-8 text-center">
+            <p className="text-gray-500 text-lg">No projects with time entries for this week</p>
+            <p className="text-gray-400 text-sm mt-2">Try selecting a different week or add time entries</p>
+          </div>
+        ) : null}
       </main>
     </div>
   )

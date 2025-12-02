@@ -47,15 +47,29 @@ export async function PUT(
 
     const { id } = await params
     const body = await request.json()
+    
+    // Build project data with proper defaults
     const projectData: any = {
       name: body.name,
       clientId: body.clientId,
       projectTypeId: body.projectTypeId,
       budget: parseFloat(body.budget),
-      description: body.description,
-      status: body.status,
-      billingType: body.billingType || 'fixed',
-      hourlyRate: body.hourlyRate && body.hourlyRate !== '' ? parseFloat(body.hourlyRate) : null
+      description: body.description || null,
+      status: body.status
+    }
+
+    // Add billing type (with default)
+    if (body.billingType !== undefined) {
+      projectData.billingType = body.billingType
+    } else {
+      projectData.billingType = 'fixed'
+    }
+
+    // Add hourly rate (nullable)
+    if (body.hourlyRate !== undefined && body.hourlyRate !== null && body.hourlyRate !== '') {
+      projectData.hourlyRate = parseFloat(body.hourlyRate)
+    } else {
+      projectData.hourlyRate = null
     }
 
     const project = await prisma.project.update({
