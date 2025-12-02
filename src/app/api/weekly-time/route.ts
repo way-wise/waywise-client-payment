@@ -43,7 +43,12 @@ export async function GET(request: Request) {
       include: {
         project: {
           include: {
-            client: true
+            client: true,
+            milestones: {
+              include: {
+                payments: true
+              }
+            }
           }
         },
         assignee: true
@@ -57,6 +62,7 @@ export async function GET(request: Request) {
       totalHours: number
       totalAmount: number
       entries: any[]
+      assignees: Set<string>
     }> = {}
 
     timeEntries.forEach(entry => {
@@ -66,17 +72,25 @@ export async function GET(request: Request) {
           project: entry.project,
           totalHours: 0,
           totalAmount: 0,
-          entries: []
+          entries: [],
+          assignees: new Set()
         }
       }
       projectTotals[projectId].totalHours += entry.hours
       projectTotals[projectId].entries.push(entry)
+      projectTotals[projectId].assignees.add(entry.assignee.name)
       
       // Calculate amount if hourly rate exists
       if (entry.project.hourlyRate) {
         projectTotals[projectId].totalAmount += entry.hours * entry.project.hourlyRate
       }
     })
+
+    // Convert Set to Array for JSON serialization
+    const projectTotalsArray = Object.values(projectTotals).map(item => ({
+      ...item,
+      assignees: Array.from(item.assignees)
+    }))
 
     // Group by assignee
     const assigneeTotals: Record<string, {
@@ -107,7 +121,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       weekStart: start.toISOString(),
       weekEnd: end.toISOString(),
-      projectTotals: Object.values(projectTotals),
+      projectTotals: projectTotalsArray,
       assigneeTotals: Object.values(assigneeTotals),
       overallTotal,
       entries: timeEntries

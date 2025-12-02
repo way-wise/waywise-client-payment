@@ -188,7 +188,15 @@ export default function ClientsPage() {
         )}
 
         {loading ? (
-          <div className="text-center py-12">Loading...</div>
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="p-8">
+              <div className="animate-pulse space-y-4">
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+              </div>
+            </div>
+          </div>
         ) : (
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
