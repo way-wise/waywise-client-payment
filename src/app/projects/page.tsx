@@ -85,17 +85,28 @@ export default function ProjectsPage() {
     const url = editing ? `/api/projects/${editing.id}` : '/api/projects'
     const method = editing ? 'PUT' : 'POST'
 
-    const res = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData)
-    })
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      })
 
-    if (res.ok) {
-      fetchData()
-      setShowModal(false)
-      setEditing(null)
-      setFormData({ name: '', clientId: '', projectTypeId: '', budget: '', billingType: 'fixed', hourlyRate: '', description: '', status: 'active' })
+      const data = await res.json()
+
+      if (res.ok) {
+        fetchData()
+        setShowModal(false)
+        setEditing(null)
+        setFormData({ name: '', clientId: '', projectTypeId: '', budget: '', billingType: 'fixed', hourlyRate: '', description: '', status: 'active' })
+      } else {
+        // Show error message to user
+        alert(data.details || data.error || 'Failed to save project. Please try again.')
+        console.error('Error response:', data)
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error)
+      alert('An error occurred while saving the project. Please try again.')
     }
   }
 

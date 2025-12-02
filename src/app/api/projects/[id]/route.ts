@@ -48,9 +48,44 @@ export async function PUT(
     const { id } = await params
     const body = await request.json()
     
-    console.log('Updating project:', id, 'with data:', body)
+    // Validate required fields
+    if (!body.name || !body.name.trim()) {
+      return NextResponse.json({ 
+        error: 'Validation error',
+        details: 'Project name is required'
+      }, { status: 400 })
+    }
+
+    if (!body.clientId || !body.clientId.trim()) {
+      return NextResponse.json({ 
+        error: 'Validation error',
+        details: 'Client is required'
+      }, { status: 400 })
+    }
+
+    if (!body.projectTypeId || !body.projectTypeId.trim()) {
+      return NextResponse.json({ 
+        error: 'Validation error',
+        details: 'Project type is required'
+      }, { status: 400 })
+    }
+
+    if (!body.budget || body.budget === '' || isNaN(parseFloat(body.budget))) {
+      return NextResponse.json({ 
+        error: 'Validation error',
+        details: 'Valid budget amount is required'
+      }, { status: 400 })
+    }
+
+    const budget = parseFloat(body.budget)
+    if (budget < 0) {
+      return NextResponse.json({ 
+        error: 'Validation error',
+        details: 'Budget must be a positive number'
+      }, { status: 400 })
+    }
     
-    // Build project data - only include fields that are provided
+    // Build project data
     const projectData: {
       name: string
       clientId: string
@@ -58,40 +93,26 @@ export async function PUT(
       budget: number
       description: string | null
       status: string
-      billingType?: string
-      hourlyRate?: number | null
+      billingType: string
+      hourlyRate: number | null
     } = {
-      name: body.name,
-      clientId: body.clientId,
-      projectTypeId: body.projectTypeId,
-      budget: parseFloat(body.budget),
-      description: body.description || null,
-      status: body.status || 'active'
-    }
-
-    // Only add billingType if it exists in the request, otherwise use default
-    if (body.billingType !== undefined && body.billingType !== null) {
-      projectData.billingType = body.billingType
-    } else if (body.billingType === undefined) {
-      // Only set default if not provided at all
-      projectData.billingType = 'fixed'
+      name: body.name.trim(),
+      clientId: body.clientId.trim(),
+      projectTypeId: body.projectTypeId.trim(),
+      budget: budget,
+      description: body.description && body.description.trim() ? body.description.trim() : null,
+      status: body.status || 'active',
+      billingType: body.billingType || 'fixed',
+      hourlyRate: null
     }
 
     // Handle hourly rate
-    if (body.hourlyRate !== undefined) {
-      if (body.hourlyRate === null || body.hourlyRate === '') {
-        projectData.hourlyRate = null
-      } else {
-        const rate = parseFloat(body.hourlyRate)
-        if (!isNaN(rate)) {
-          projectData.hourlyRate = rate
-        } else {
-          projectData.hourlyRate = null
-        }
+    if (body.hourlyRate !== undefined && body.hourlyRate !== null && body.hourlyRate !== '') {
+      const rate = parseFloat(body.hourlyRate)
+      if (!isNaN(rate) && rate >= 0) {
+        projectData.hourlyRate = rate
       }
     }
-
-    console.log('Project data to update:', projectData)
 
     const project = await prisma.project.update({
       where: { id },
@@ -107,6 +128,34 @@ export async function PUT(
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     const errorStack = error instanceof Error ? error.stack : undefined
     console.error('Error details:', { message: errorMessage, stack: errorStack })
+    
+    // Check for Prisma-specific errors
+    if (error instanceof Error) {
+      // Foreign key constraint errors
+      if (error.message.includes('Foreign key constraint') || error.message.includes('Unique constraint')) {
+        return NextResponse.json({ 
+          error: 'Validation error',
+          details: 'Invalid client or project type selected. Please ensure they exist.'
+        }, { status: 400 })
+      }
+      
+      // Record not found
+      if (error.message.includes('Record to update does not exist') || error.message.includes('not found')) {
+        return NextResponse.json({ 
+          error: 'Project not found',
+          details: 'The project you are trying to update does not exist.'
+        }, { status: 404 })
+      }
+      
+      // Connection errors
+      if (error.message.includes('connect') || error.message.includes('timeout')) {
+        return NextResponse.json({ 
+          error: 'Database connection error',
+          details: 'Unable to connect to the database. Please check your connection settings.'
+        }, { status: 500 })
+      }
+    }
+    
     return NextResponse.json({ 
       error: 'Failed to update project',
       details: errorMessage
