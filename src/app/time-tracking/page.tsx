@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Navigation from '@/components/Navigation'
+import Pagination from '@/components/Pagination'
 
 interface TimeEntry {
   id: string
@@ -47,6 +49,10 @@ interface WeeklyData {
 export default function TimeTrackingPage() {
   const [weeklyData, setWeeklyData] = useState<WeeklyData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [projectPage, setProjectPage] = useState(1)
+  const [assigneePage, setAssigneePage] = useState(1)
+  const [entriesPage, setEntriesPage] = useState(1)
+  const itemsPerPage = 10
   const [startDate, setStartDate] = useState(() => {
     const date = new Date()
     const day = date.getDay()
@@ -133,97 +139,193 @@ export default function TimeTrackingPage() {
   const start = new Date(startDate)
   const end = new Date(endDate)
 
+  // Pagination calculations for project totals
+  const projectTotalPages = Math.ceil((weeklyData?.projectTotals.length || 0) / itemsPerPage)
+  const projectStartIndex = (projectPage - 1) * itemsPerPage
+  const projectEndIndex = projectStartIndex + itemsPerPage
+  const paginatedProjects = weeklyData?.projectTotals.slice(projectStartIndex, projectEndIndex) || []
+
+  // Pagination calculations for assignee totals
+  const assigneeTotalPages = Math.ceil((weeklyData?.assigneeTotals.length || 0) / itemsPerPage)
+  const assigneeStartIndex = (assigneePage - 1) * itemsPerPage
+  const assigneeEndIndex = assigneeStartIndex + itemsPerPage
+  const paginatedAssignees = weeklyData?.assigneeTotals.slice(assigneeStartIndex, assigneeEndIndex) || []
+
+  // Pagination calculations for daily entries
+  const entriesTotalPages = Math.ceil((weeklyData?.entries.length || 0) / itemsPerPage)
+  const entriesStartIndex = (entriesPage - 1) * itemsPerPage
+  const entriesEndIndex = entriesStartIndex + itemsPerPage
+  const paginatedEntries = weeklyData?.entries.slice(entriesStartIndex, entriesEndIndex) || []
+
+  // Reset pages when date range changes
+  useEffect(() => {
+    setProjectPage(1)
+    setAssigneePage(1)
+    setEntriesPage(1)
+  }, [startDate, endDate])
+
+  // Determine active filter
+  const getActiveFilter = () => {
+    const today = new Date()
+    const currentWeek = getWeekRange(today)
+    const prevWeek = getWeekRange(new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000))
+    const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1)
+    const thisMonthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+    const prevMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+    const prevMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0)
+
+    const startStr = startDate
+    const endStr = endDate
+
+    if (startStr === currentWeek.start.toISOString().split('T')[0] && 
+        endStr === currentWeek.end.toISOString().split('T')[0]) {
+      return 'current'
+    }
+    if (startStr === prevWeek.start.toISOString().split('T')[0] && 
+        endStr === prevWeek.end.toISOString().split('T')[0]) {
+      return 'previous'
+    }
+    if (startStr === thisMonthStart.toISOString().split('T')[0] && 
+        endStr === thisMonthEnd.toISOString().split('T')[0]) {
+      return 'thisMonth'
+    }
+    if (startStr === prevMonthStart.toISOString().split('T')[0] && 
+        endStr === prevMonthEnd.toISOString().split('T')[0]) {
+      return 'previousMonth'
+    }
+    return 'custom'
+  }
+
+  const activeFilter = getActiveFilter()
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center space-x-8">
-              <Link href="/" className="text-xl font-bold text-gray-900">Project Time Tracking</Link>
-              <div className="flex space-x-4">
-                <Link href="/" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                  Dashboard
-                </Link>
-                <Link href="/clients" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                  Clients
-                </Link>
-                <Link href="/projects" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                  Projects
-                </Link>
-                <Link href="/time-tracking" className="text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
-                  Time Tracking
-                </Link>
-                <Link href="/assignees" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                  Assignees
-                </Link>
-                <Link href="/project-types" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                  Project Types
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <Navigation />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Time Tracking</h2>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Time Tracking</h1>
             <p className="text-gray-600">
-              Date Range: {start.toLocaleDateString()} - {end.toLocaleDateString()}
+              {start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} - {end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </p>
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <label className="text-sm text-gray-600">From:</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
-              />
-            </div>
-            <div className="flex items-center space-x-2">
-              <label className="text-sm text-gray-600">To:</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
-              />
-            </div>
-            <div className="flex items-center space-x-2 border-l pl-4">
+          <Link
+            href="/time-entries"
+            className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors shadow-md hover:shadow-lg font-medium flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Time Entry
+          </Link>
+        </div>
+
+        {/* Beautiful Filter Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            <h2 className="text-lg font-semibold text-gray-900">Filter by Date Range</h2>
+          </div>
+
+          {/* Quick Select Buttons */}
+          <div className="mb-6">
+            <p className="text-sm font-medium text-gray-700 mb-3">Quick Select</p>
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => handleQuickSelect('current')}
-                className="px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                className={`px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 flex items-center gap-2 ${
+                  activeFilter === 'current'
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
               >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
                 Current Week
               </button>
               <button
                 onClick={() => handleQuickSelect('previous')}
-                className="px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                className={`px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 flex items-center gap-2 ${
+                  activeFilter === 'previous'
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
               >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
                 Previous Week
               </button>
               <button
                 onClick={() => handleQuickSelect('thisMonth')}
-                className="px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                className={`px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 flex items-center gap-2 ${
+                  activeFilter === 'thisMonth'
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
               >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
                 This Month
               </button>
               <button
                 onClick={() => handleQuickSelect('previousMonth')}
-                className="px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                className={`px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 flex items-center gap-2 ${
+                  activeFilter === 'previousMonth'
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
               >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
                 Previous Month
               </button>
             </div>
-            <Link
-              href="/time-entries"
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-            >
-              Add Time Entry
-            </Link>
+          </div>
+
+          {/* Custom Date Range */}
+          <div className="border-t pt-4">
+            <p className="text-sm font-medium text-gray-700 mb-3">Custom Date Range</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Start Date
+                  </span>
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    End Date
+                  </span>
+                </label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -241,7 +343,7 @@ export default function TimeTrackingPage() {
         ) : weeklyData ? (
           <div className="space-y-6">
             {/* Overall Summary */}
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white rounded-xl shadow-sm p-6">
               <h3 className="text-lg font-semibold mb-4">Week Summary</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -258,7 +360,7 @@ export default function TimeTrackingPage() {
             </div>
 
             {/* Project Totals */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900">By Project</h3>
               </div>
@@ -274,8 +376,8 @@ export default function TimeTrackingPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {weeklyData.projectTotals && weeklyData.projectTotals.length > 0 ? (
-                      weeklyData.projectTotals.map((item) => (
+                    {paginatedProjects.length > 0 ? (
+                      paginatedProjects.map((item) => (
                       <tr key={item.project.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {item.project.name}
@@ -304,10 +406,19 @@ export default function TimeTrackingPage() {
                   </tbody>
                 </table>
               </div>
+              {weeklyData.projectTotals && weeklyData.projectTotals.length > itemsPerPage && (
+                <Pagination
+                  currentPage={projectPage}
+                  totalPages={projectTotalPages}
+                  onPageChange={setProjectPage}
+                  itemsPerPage={itemsPerPage}
+                  totalItems={weeklyData.projectTotals.length}
+                />
+              )}
             </div>
 
             {/* Assignee Totals */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900">By Assignee</h3>
               </div>
@@ -320,8 +431,8 @@ export default function TimeTrackingPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {weeklyData.assigneeTotals && weeklyData.assigneeTotals.length > 0 ? (
-                      weeklyData.assigneeTotals.map((item) => (
+                    {paginatedAssignees.length > 0 ? (
+                      paginatedAssignees.map((item) => (
                       <tr key={item.assignee.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {item.assignee.name}
@@ -341,10 +452,19 @@ export default function TimeTrackingPage() {
                   </tbody>
                 </table>
               </div>
+              {weeklyData.assigneeTotals && weeklyData.assigneeTotals.length > itemsPerPage && (
+                <Pagination
+                  currentPage={assigneePage}
+                  totalPages={assigneeTotalPages}
+                  onPageChange={setAssigneePage}
+                  itemsPerPage={itemsPerPage}
+                  totalItems={weeklyData.assigneeTotals.length}
+                />
+              )}
             </div>
 
             {/* Daily Entries */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900">Daily Entries</h3>
               </div>
@@ -360,8 +480,8 @@ export default function TimeTrackingPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {weeklyData.entries && weeklyData.entries.length > 0 ? (
-                      weeklyData.entries.map((entry) => (
+                    {paginatedEntries.length > 0 ? (
+                      paginatedEntries.map((entry) => (
                       <tr key={entry.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {new Date(entry.date).toLocaleDateString()}
@@ -390,6 +510,15 @@ export default function TimeTrackingPage() {
                   </tbody>
                 </table>
               </div>
+              {weeklyData.entries && weeklyData.entries.length > itemsPerPage && (
+                <Pagination
+                  currentPage={entriesPage}
+                  totalPages={entriesTotalPages}
+                  onPageChange={setEntriesPage}
+                  itemsPerPage={itemsPerPage}
+                  totalItems={weeklyData.entries.length}
+                />
+              )}
             </div>
           </div>
         ) : (

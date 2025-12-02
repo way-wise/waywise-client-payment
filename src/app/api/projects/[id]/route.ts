@@ -51,7 +51,16 @@ export async function PUT(
     console.log('Updating project:', id, 'with data:', body)
     
     // Build project data - only include fields that are provided
-    const projectData: any = {
+    const projectData: {
+      name: string
+      clientId: string
+      projectTypeId: string
+      budget: number
+      description: string | null
+      status: string
+      billingType?: string
+      hourlyRate?: number | null
+    } = {
       name: body.name,
       clientId: body.clientId,
       projectTypeId: body.projectTypeId,
@@ -113,7 +122,8 @@ export async function DELETE(
     const { id } = await params
     await prisma.project.delete({ where: { id } })
     return NextResponse.json({ success: true })
-  } catch (error) {
+  } catch (err) {
+    console.error('Error deleting project:', err)
     return NextResponse.json({ error: 'Failed to delete project' }, { status: 500 })
   }
 }

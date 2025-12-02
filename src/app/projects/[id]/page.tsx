@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import Navigation from '@/components/Navigation'
+import Modal from '@/components/Modal'
 
 interface Milestone {
   id: string
@@ -120,9 +122,10 @@ export default function ProjectDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <Navigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-white rounded-lg shadow p-8 animate-pulse">
+          <div className="bg-white rounded-xl shadow-sm p-8 animate-pulse">
             <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
             <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
             <div className="h-4 bg-gray-200 rounded w-2/3"></div>
@@ -131,7 +134,12 @@ export default function ProjectDetailPage() {
       </div>
     )
   }
-  if (!project) return <div className="text-center py-12">Project not found</div>
+  if (!project) return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <Navigation />
+      <div className="text-center py-12">Project not found</div>
+    </div>
+  )
 
   const totalPaid = project.milestones.reduce((sum, m) => {
     return sum + m.payments.reduce((pSum, p) => pSum + p.amount, 0)
@@ -140,38 +148,19 @@ export default function ProjectDetailPage() {
   const totalBudget = project.milestones.reduce((sum, m) => sum + m.amount, 0) || project.budget
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center space-x-8">
-              <Link href="/" className="text-xl font-bold text-gray-900">Project Time Tracking</Link>
-              <div className="flex space-x-4">
-                <Link href="/" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                  Dashboard
-                </Link>
-                <Link href="/clients" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                  Clients
-                </Link>
-                <Link href="/projects" className="text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
-                  Projects
-                </Link>
-                <Link href="/project-types" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                  Project Types
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <Navigation />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Link href="/projects" className="text-blue-600 hover:text-blue-800 mb-4 inline-block">
-          ← Back to Projects
+        <Link href="/projects" className="text-indigo-600 hover:text-indigo-800 mb-4 inline-flex items-center gap-2 font-medium">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Projects
         </Link>
 
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">{project.name}</h1>
+        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{project.name}</h1>
           <p className="text-gray-600 mb-4">
             Client: {project.client.name} • Type: {project.projectType.name} • 
             <span className={`ml-2 px-2 py-1 rounded text-xs ${
@@ -205,15 +194,18 @@ export default function ProjectDetailPage() {
           <h2 className="text-xl font-bold text-gray-900">Milestones</h2>
           <button
             onClick={() => setShowMilestoneForm(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-sm"
           >
             Add Milestone
           </button>
         </div>
 
-        {showMilestoneForm && (
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h3 className="text-lg font-semibold mb-4">Add Milestone</h3>
+        <Modal
+          isOpen={showMilestoneForm}
+          onClose={() => setShowMilestoneForm(false)}
+          title="Add Milestone"
+          size="md"
+        >
             <form onSubmit={handleMilestoneSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -223,7 +215,7 @@ export default function ProjectDetailPage() {
                     required
                     value={milestoneForm.name}
                     onChange={(e) => setMilestoneForm({ ...milestoneForm, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                   />
                 </div>
                 <div>
@@ -234,7 +226,7 @@ export default function ProjectDetailPage() {
                     required
                     value={milestoneForm.amount}
                     onChange={(e) => setMilestoneForm({ ...milestoneForm, amount: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                   />
                 </div>
               </div>
@@ -245,7 +237,7 @@ export default function ProjectDetailPage() {
                   required
                     value={milestoneForm.dueDate}
                     onChange={(e) => setMilestoneForm({ ...milestoneForm, dueDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                   />
               </div>
               <div>
@@ -270,8 +262,7 @@ export default function ProjectDetailPage() {
                 </button>
               </div>
             </form>
-          </div>
-        )}
+        </Modal>
 
         <div className="space-y-4">
           {project.milestones.map((milestone) => {
@@ -280,7 +271,7 @@ export default function ProjectDetailPage() {
             const isOverdue = new Date(milestone.dueDate) < new Date() && remaining > 0
 
             return (
-              <div key={milestone.id} className="bg-white rounded-lg shadow p-6">
+              <div key={milestone.id} className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">{milestone.name}</h3>
@@ -346,10 +337,15 @@ export default function ProjectDetailPage() {
           })}
         </div>
 
-        {showPaymentForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold mb-4">Add Payment</h3>
+        <Modal
+          isOpen={showPaymentForm}
+          onClose={() => {
+            setShowPaymentForm(false)
+            setSelectedMilestone('')
+          }}
+          title="Add Payment"
+          size="sm"
+        >
               <form onSubmit={handlePaymentSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Amount *</label>
@@ -359,7 +355,7 @@ export default function ProjectDetailPage() {
                     required
                     value={paymentForm.amount}
                     onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                   />
                 </div>
                 <div>
@@ -369,7 +365,7 @@ export default function ProjectDetailPage() {
                     required
                     value={paymentForm.paymentDate}
                     onChange={(e) => setPaymentForm({ ...paymentForm, paymentDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                   />
                 </div>
                 <div>
@@ -377,7 +373,7 @@ export default function ProjectDetailPage() {
                   <textarea
                     value={paymentForm.notes}
                     onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                     rows={2}
                   />
                 </div>
@@ -397,9 +393,7 @@ export default function ProjectDetailPage() {
                   </button>
                 </div>
               </form>
-            </div>
-          </div>
-        )}
+        </Modal>
       </main>
     </div>
   )

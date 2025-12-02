@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Navigation from '@/components/Navigation'
+import Pagination from '@/components/Pagination'
 
 interface TimeEntry {
   id: string
@@ -53,6 +55,8 @@ interface WeeklyData {
 export default function Home() {
   const [weeklyData, setWeeklyData] = useState<WeeklyData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
   const [startDate, setStartDate] = useState(() => {
     const date = new Date()
     const day = date.getDay()
@@ -177,53 +181,36 @@ export default function Home() {
     return status === 'Completed' || status === 'Fixed Price'
   }
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredProjects.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedProjects = filteredProjects.slice(startIndex, endIndex)
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filterType, startDate, endDate])
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center space-x-8">
-              <h1 className="text-xl font-bold text-gray-900">Project Time Tracking</h1>
-              <div className="flex space-x-4">
-                <Link href="/" className="text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
-                  Dashboard
-                </Link>
-                <Link href="/clients" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                  Clients
-                </Link>
-                <Link href="/projects" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                  Projects
-                </Link>
-                <Link href="/time-tracking" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                  Time Tracking
-                </Link>
-                <Link href="/assignees" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                  Assignees
-                </Link>
-                <Link href="/project-types" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                  Project Types
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <Navigation />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Project Dashboard</h2>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Project Dashboard</h1>
           <p className="text-gray-600">Track time, payments, and project status</p>
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Project Type</label>
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value as 'all' | 'hourly' | 'fixed')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
               >
                 <option value="all">All Projects</option>
                 <option value="hourly">Hourly Projects</option>
@@ -236,7 +223,7 @@ export default function Home() {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
               />
             </div>
             <div>
@@ -245,7 +232,7 @@ export default function Home() {
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
               />
             </div>
           </div>
@@ -257,25 +244,25 @@ export default function Home() {
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => handleQuickSelect('current')}
-                  className="px-3 py-1 text-xs text-gray-700 hover:bg-gray-100 rounded-md border border-gray-300"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                 >
                   Current Week
                 </button>
                 <button
                   onClick={() => handleQuickSelect('previous')}
-                  className="px-3 py-1 text-xs text-gray-700 hover:bg-gray-100 rounded-md border border-gray-300"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                 >
                   Previous Week
                 </button>
                 <button
                   onClick={() => handleQuickSelect('thisMonth')}
-                  className="px-3 py-1 text-xs text-gray-700 hover:bg-gray-100 rounded-md border border-gray-300"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                 >
                   This Month
                 </button>
                 <button
                   onClick={() => handleQuickSelect('previousMonth')}
-                  className="px-3 py-1 text-xs text-gray-700 hover:bg-gray-100 rounded-md border border-gray-300"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                 >
                   Previous Month
                 </button>
@@ -296,16 +283,16 @@ export default function Home() {
           </div>
         ) : weeklyData ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <div className="bg-white rounded-lg shadow p-6">
-              <p className="text-sm text-gray-600 mb-1">Total Hours</p>
+            <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-indigo-500">
+              <p className="text-sm font-medium text-gray-600 mb-1">Total Hours</p>
               <p className="text-3xl font-bold text-gray-900">{weeklyData.overallTotal.totalHours.toFixed(2)}</p>
             </div>
-            <div className="bg-white rounded-lg shadow p-6">
-              <p className="text-sm text-gray-600 mb-1">Total Amount</p>
+            <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500">
+              <p className="text-sm font-medium text-gray-600 mb-1">Total Amount</p>
               <p className="text-3xl font-bold text-green-600">${weeklyData.overallTotal.totalAmount.toFixed(2)}</p>
             </div>
-            <div className="bg-white rounded-lg shadow p-6">
-              <p className="text-sm text-gray-600 mb-1">Active Projects</p>
+            <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500">
+              <p className="text-sm font-medium text-gray-600 mb-1">Active Projects</p>
               <p className="text-3xl font-bold text-blue-600">{filteredProjects.length}</p>
             </div>
           </div>
@@ -317,7 +304,7 @@ export default function Home() {
 
         {/* Main Table */}
         {loading ? (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             <div className="p-8">
               <div className="animate-pulse space-y-4">
                 <div className="h-4 bg-gray-200 rounded w-3/4"></div>
@@ -327,7 +314,7 @@ export default function Home() {
             </div>
           </div>
         ) : weeklyData && weeklyData.projectTotals && weeklyData.projectTotals.length > 0 ? (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">Project Details</h3>
             </div>
@@ -366,7 +353,7 @@ export default function Home() {
                       </td>
                     </tr>
                   ) : (
-                    filteredProjects.map((item) => {
+                    paginatedProjects.map((item) => {
                       // Get unique assignees for this project
                       const assignees = item.assignees 
                         ? item.assignees.join(', ')
@@ -432,6 +419,15 @@ export default function Home() {
                 </tbody>
               </table>
             </div>
+            {filteredProjects.length > itemsPerPage && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                itemsPerPage={itemsPerPage}
+                totalItems={filteredProjects.length}
+              />
+            )}
           </div>
         ) : !loading ? (
           <div className="bg-white rounded-lg shadow p-8 text-center">
