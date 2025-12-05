@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    let timeEntries
+    let timeEntries: Awaited<ReturnType<typeof prisma.timeEntry.findMany>>
     try {
       timeEntries = await prisma.timeEntry.findMany({
         where,
