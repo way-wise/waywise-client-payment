@@ -26,56 +26,18 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    let timeEntries: Awaited<ReturnType<typeof prisma.timeEntry.findMany>>
-    try {
-      timeEntries = await prisma.timeEntry.findMany({
-        where,
-        include: {
-          project: {
-            include: {
-              client: true
-            }
-          },
-          assignee: true
+    const timeEntries = await prisma.timeEntry.findMany({
+      where,
+      include: {
+        project: {
+          include: {
+            client: true
+          }
         },
-        orderBy: { date: 'desc' }
-      })
-    } catch (error: any) {
-      // If error is about missing columns, try using raw query or return empty array
-      if (error?.message?.includes('column') || error?.code === 'P2001' || error?.code === 'P2011') {
-        console.warn('New columns not found, fetching entries without entryHour/entryMinute')
-        // Try again - Prisma might handle missing optional columns gracefully
-        // If it doesn't, we'll need to use a raw query
-        try {
-          timeEntries = await prisma.timeEntry.findMany({
-            where,
-            select: {
-              id: true,
-              projectId: true,
-              assigneeId: true,
-              date: true,
-              hours: true,
-              description: true,
-              createdAt: true,
-              updatedAt: true,
-              project: {
-                include: {
-                  client: true
-                }
-              },
-              assignee: true
-            },
-            orderBy: { date: 'desc' }
-          })
-        } catch (retryError) {
-          // If still failing, return empty array or rethrow
-          console.error('Error fetching time entries after retry:', retryError)
-          timeEntries = []
-        }
-      } else {
-        throw error
-      }
-    }
+        assignee: true
+      },
+      orderBy: { date: 'desc' }
+    })
     
     return NextResponse.json(timeEntries)
   } catch (error) {
