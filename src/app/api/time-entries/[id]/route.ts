@@ -11,30 +11,66 @@ export async function PUT(
     
     // Calculate hours from entryHour and entryMinute if provided, otherwise use hours field
     let calculatedHours = parseFloat(body.hours) || 0
-    if (body.entryHour !== undefined && body.entryMinute !== undefined) {
-      calculatedHours = (parseInt(body.entryHour) || 0) + ((parseInt(body.entryMinute) || 0) / 60)
+    const entryHour = body.entryHour !== undefined && body.entryHour !== '' ? parseInt(body.entryHour) : null
+    const entryMinute = body.entryMinute !== undefined && body.entryMinute !== '' ? parseInt(body.entryMinute) : null
+    
+    if (entryHour !== null && entryMinute !== null) {
+      calculatedHours = entryHour + (entryMinute / 60)
     }
     
-    const timeEntry = await prisma.timeEntry.update({
-      where: { id },
-      data: {
-        projectId: body.projectId,
-        assigneeId: body.assigneeId,
-        date: new Date(body.date),
-        hours: calculatedHours,
-        entryHour: body.entryHour !== undefined ? parseInt(body.entryHour) : null,
-        entryMinute: body.entryMinute !== undefined ? parseInt(body.entryMinute) : null,
-        description: body.description
-      },
-      include: {
-        project: true,
-        assignee: true
+    // Build data object, conditionally including new fields
+    const baseData: any = {
+      projectId: body.projectId,
+      assigneeId: body.assigneeId,
+      date: new Date(body.date),
+      hours: calculatedHours,
+      description: body.description
+    }
+    
+    // Try to include new fields if they have valid values
+    const dataWithNewFields = { ...baseData }
+    if (entryHour !== null) {
+      dataWithNewFields.entryHour = entryHour
+    }
+    if (entryMinute !== null) {
+      dataWithNewFields.entryMinute = entryMinute
+    }
+    
+    // Try updating with new fields first, fallback to base data if columns don't exist
+    let timeEntry
+    try {
+      timeEntry = await prisma.timeEntry.update({
+        where: { id },
+        data: dataWithNewFields,
+        include: {
+          project: true,
+          assignee: true
+        }
+      })
+    } catch (error: any) {
+      // If error is about missing columns, retry without new fields
+      if (error?.message?.includes('column') || error?.code === 'P2001' || error?.code === 'P2011') {
+        console.warn('New columns not found, updating entry without entryHour/entryMinute')
+        timeEntry = await prisma.timeEntry.update({
+          where: { id },
+          data: baseData,
+          include: {
+            project: true,
+            assignee: true
+          }
+        })
+      } else {
+        throw error
       }
-    })
+    }
+    
     return NextResponse.json(timeEntry)
   } catch (error) {
     console.error('Error updating time entry:', error)
-    return NextResponse.json({ error: 'Failed to update time entry' }, { status: 500 })
+    return NextResponse.json({ 
+      error: 'Failed to update time entry',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }
 

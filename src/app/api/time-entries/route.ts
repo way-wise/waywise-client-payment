@@ -26,18 +26,57 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const timeEntries = await prisma.timeEntry.findMany({
-      where,
-      include: {
-        project: {
-          include: {
-            client: true
-          }
+    let timeEntries
+    try {
+      timeEntries = await prisma.timeEntry.findMany({
+        where,
+        include: {
+          project: {
+            include: {
+              client: true
+            }
+          },
+          assignee: true
         },
-        assignee: true
-      },
-      orderBy: { date: 'desc' }
-    })
+        orderBy: { date: 'desc' }
+      })
+    } catch (error: any) {
+      // If error is about missing columns, try using raw query or return empty array
+      if (error?.message?.includes('column') || error?.code === 'P2001' || error?.code === 'P2011') {
+        console.warn('New columns not found, fetching entries without entryHour/entryMinute')
+        // Try again - Prisma might handle missing optional columns gracefully
+        // If it doesn't, we'll need to use a raw query
+        try {
+          timeEntries = await prisma.timeEntry.findMany({
+            where,
+            select: {
+              id: true,
+              projectId: true,
+              assigneeId: true,
+              date: true,
+              hours: true,
+              description: true,
+              createdAt: true,
+              updatedAt: true,
+              project: {
+                include: {
+                  client: true
+                }
+              },
+              assignee: true
+            },
+            orderBy: { date: 'desc' }
+          })
+        } catch (retryError) {
+          // If still failing, return empty array or rethrow
+          console.error('Error fetching time entries after retry:', retryError)
+          timeEntries = []
+        }
+      } else {
+        throw error
+      }
+    }
+    
     return NextResponse.json(timeEntries)
   } catch (error) {
     console.error('Error fetching time entries:', error)
@@ -61,29 +100,65 @@ export async function POST(request: NextRequest) {
     
     // Calculate hours from entryHour and entryMinute if provided, otherwise use hours field
     let calculatedHours = parseFloat(body.hours) || 0
-    if (body.entryHour !== undefined && body.entryMinute !== undefined) {
-      calculatedHours = (parseInt(body.entryHour) || 0) + ((parseInt(body.entryMinute) || 0) / 60)
+    const entryHour = body.entryHour !== undefined && body.entryHour !== '' ? parseInt(body.entryHour) : null
+    const entryMinute = body.entryMinute !== undefined && body.entryMinute !== '' ? parseInt(body.entryMinute) : null
+    
+    if (entryHour !== null && entryMinute !== null) {
+      calculatedHours = entryHour + (entryMinute / 60)
     }
     
-    const timeEntry = await prisma.timeEntry.create({
-      data: {
-        projectId: body.projectId,
-        assigneeId: body.assigneeId,
-        date: new Date(body.date),
-        hours: calculatedHours,
-        entryHour: body.entryHour !== undefined ? parseInt(body.entryHour) : null,
-        entryMinute: body.entryMinute !== undefined ? parseInt(body.entryMinute) : null,
-        description: body.description
-      },
-      include: {
-        project: {
+    // Build data object, conditionally including new fields
+    const baseData: any = {
+      projectId: body.projectId,
+      assigneeId: body.assigneeId,
+      date: new Date(body.date),
+      hours: calculatedHours,
+      description: body.description
+    }
+    
+    // Try to include new fields if they have valid values
+    const dataWithNewFields = { ...baseData }
+    if (entryHour !== null) {
+      dataWithNewFields.entryHour = entryHour
+    }
+    if (entryMinute !== null) {
+      dataWithNewFields.entryMinute = entryMinute
+    }
+    
+    // Try creating with new fields first, fallback to base data if columns don't exist
+    let timeEntry
+    try {
+      timeEntry = await prisma.timeEntry.create({
+        data: dataWithNewFields,
+        include: {
+          project: {
+            include: {
+              client: true
+            }
+          },
+          assignee: true
+        }
+      })
+    } catch (error: any) {
+      // If error is about missing columns, retry without new fields
+      if (error?.message?.includes('column') || error?.code === 'P2001' || error?.code === 'P2011') {
+        console.warn('New columns not found, creating entry without entryHour/entryMinute')
+        timeEntry = await prisma.timeEntry.create({
+          data: baseData,
           include: {
-            client: true
+            project: {
+              include: {
+                client: true
+              }
+            },
+            assignee: true
           }
-        },
-        assignee: true
+        })
+      } else {
+        throw error
       }
-    })
+    }
+    
     return NextResponse.json(timeEntry)
   } catch (error) {
     console.error('Error creating time entry:', error)
