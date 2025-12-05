@@ -144,7 +144,8 @@ export default function TimeEntriesPage() {
       projectId: '',
       assigneeId: '',
       date: new Date().toISOString().split('T')[0],
-      hours: '',
+      entryHour: '',
+      entryMinute: '',
       description: ''
     })
     setShowModal(true)
