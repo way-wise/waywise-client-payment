@@ -24,6 +24,8 @@ interface TimeEntry {
   id: string
   date: string
   hours: number
+  entryHour: number | null
+  entryMinute: number | null
   description: string | null
   project: Project
   assignee: Assignee
@@ -46,7 +48,8 @@ export default function TimeEntriesPage() {
     projectId: '',
     assigneeId: '',
     date: new Date().toISOString().split('T')[0],
-    hours: '',
+    entryHour: '',
+    entryMinute: '',
     description: ''
   })
 
@@ -97,7 +100,8 @@ export default function TimeEntriesPage() {
         projectId: '',
         assigneeId: '',
         date: new Date().toISOString().split('T')[0],
-        hours: '',
+        entryHour: '',
+        entryMinute: '',
         description: ''
       })
     }
@@ -105,11 +109,24 @@ export default function TimeEntriesPage() {
 
   const handleEdit = (entry: TimeEntry) => {
     setEditing(entry)
+    // If entryHour and entryMinute exist, use them; otherwise calculate from hours
+    let hour = ''
+    let minute = ''
+    if (entry.entryHour !== null && entry.entryMinute !== null) {
+      hour = entry.entryHour.toString()
+      minute = entry.entryMinute.toString()
+    } else {
+      // Calculate from hours (e.g., 8.5 hours = 8 hours 30 minutes)
+      const totalMinutes = Math.round(entry.hours * 60)
+      hour = Math.floor(totalMinutes / 60).toString()
+      minute = (totalMinutes % 60).toString()
+    }
     setFormData({
       projectId: entry.project.id,
       assigneeId: entry.assignee.id,
       date: new Date(entry.date).toISOString().split('T')[0],
-      hours: entry.hours.toString(),
+      entryHour: hour,
+      entryMinute: minute,
       description: entry.description || ''
     })
     setShowModal(true)
@@ -253,17 +270,35 @@ export default function TimeEntriesPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Hours *</label>
-                <input
-                  type="number"
-                  step="0.25"
-                  min="0"
-                  required
-                  value={formData.hours}
-                  onChange={(e) => setFormData({ ...formData, hours: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                  placeholder="8.0"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-2">Time *</label>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <input
+                      type="number"
+                      min="0"
+                      max="23"
+                      required
+                      value={formData.entryHour}
+                      onChange={(e) => setFormData({ ...formData, entryHour: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                      placeholder="Hours"
+                    />
+                    <span className="text-xs text-gray-500 mt-1 block">Hours</span>
+                  </div>
+                  <div className="flex-1">
+                    <input
+                      type="number"
+                      min="0"
+                      max="59"
+                      required
+                      value={formData.entryMinute}
+                      onChange={(e) => setFormData({ ...formData, entryMinute: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                      placeholder="Minutes"
+                    />
+                    <span className="text-xs text-gray-500 mt-1 block">Minutes</span>
+                  </div>
+                </div>
               </div>
             </div>
             <div>
@@ -356,7 +391,11 @@ export default function TimeEntriesPage() {
                           <div className="text-sm text-gray-600">{entry.assignee.name}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{entry.hours.toFixed(2)}h</div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {entry.entryHour !== null && entry.entryMinute !== null
+                              ? `${entry.entryHour}h ${entry.entryMinute}m`
+                              : `${entry.hours.toFixed(2)}h`}
+                          </div>
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm text-gray-600 max-w-xs truncate">{entry.description || <span className="text-gray-400">—</span>}</div>

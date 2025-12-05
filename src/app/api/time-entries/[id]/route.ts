@@ -8,13 +8,22 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
+    
+    // Calculate hours from entryHour and entryMinute if provided, otherwise use hours field
+    let calculatedHours = parseFloat(body.hours) || 0
+    if (body.entryHour !== undefined && body.entryMinute !== undefined) {
+      calculatedHours = (parseInt(body.entryHour) || 0) + ((parseInt(body.entryMinute) || 0) / 60)
+    }
+    
     const timeEntry = await prisma.timeEntry.update({
       where: { id },
       data: {
         projectId: body.projectId,
         assigneeId: body.assigneeId,
         date: new Date(body.date),
-        hours: parseFloat(body.hours),
+        hours: calculatedHours,
+        entryHour: body.entryHour !== undefined ? parseInt(body.entryHour) : null,
+        entryMinute: body.entryMinute !== undefined ? parseInt(body.entryMinute) : null,
         description: body.description
       },
       include: {
