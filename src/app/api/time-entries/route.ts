@@ -89,9 +89,11 @@ export async function POST(request: NextRequest) {
     
     // Try creating with new fields first, fallback to base data if columns don't exist
     let timeEntry
+    const hasNewFields = entryHour !== null || entryMinute !== null
+    
     try {
       timeEntry = await prisma.timeEntry.create({
-        data: dataWithNewFields,
+        data: hasNewFields ? dataWithNewFields : baseData,
         include: {
           project: {
             include: {
@@ -102,20 +104,40 @@ export async function POST(request: NextRequest) {
         }
       })
     } catch (error: any) {
-      // If error is about missing columns, retry without new fields
-      if (error?.message?.includes('column') || error?.code === 'P2001' || error?.code === 'P2011') {
-        console.warn('New columns not found, creating entry without entryHour/entryMinute')
-        timeEntry = await prisma.timeEntry.create({
-          data: baseData,
-          include: {
-            project: {
+      // If we tried to use new fields and got an error, retry without them
+      if (hasNewFields) {
+        const errorMessage = String(error?.message || '').toLowerCase()
+        const isColumnError = 
+          errorMessage.includes('column') || 
+          errorMessage.includes('does not exist') ||
+          errorMessage.includes('unknown column') ||
+          errorMessage.includes('undefined column') ||
+          error?.code === 'P2001' || 
+          error?.code === 'P2011' ||
+          error?.code === '42703' || // PostgreSQL error code for undefined column
+          error?.code?.startsWith('P') // Any Prisma error code
+        
+        if (isColumnError) {
+          console.warn('New columns not found, creating entry without entryHour/entryMinute. Error:', error?.message)
+          try {
+            timeEntry = await prisma.timeEntry.create({
+              data: baseData,
               include: {
-                client: true
+                project: {
+                  include: {
+                    client: true
+                  }
+                },
+                assignee: true
               }
-            },
-            assignee: true
+            })
+          } catch (retryError) {
+            // If retry also fails, throw the original error
+            throw error
           }
-        })
+        } else {
+          throw error
+        }
       } else {
         throw error
       }

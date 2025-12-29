@@ -38,27 +38,49 @@ export async function PUT(
     
     // Try updating with new fields first, fallback to base data if columns don't exist
     let timeEntry
+    const hasNewFields = entryHour !== null || entryMinute !== null
+    
     try {
       timeEntry = await prisma.timeEntry.update({
         where: { id },
-        data: dataWithNewFields,
+        data: hasNewFields ? dataWithNewFields : baseData,
         include: {
           project: true,
           assignee: true
         }
       })
     } catch (error: any) {
-      // If error is about missing columns, retry without new fields
-      if (error?.message?.includes('column') || error?.code === 'P2001' || error?.code === 'P2011') {
-        console.warn('New columns not found, updating entry without entryHour/entryMinute')
-        timeEntry = await prisma.timeEntry.update({
-          where: { id },
-          data: baseData,
-          include: {
-            project: true,
-            assignee: true
+      // If we tried to use new fields and got an error, retry without them
+      if (hasNewFields) {
+        const errorMessage = String(error?.message || '').toLowerCase()
+        const isColumnError = 
+          errorMessage.includes('column') || 
+          errorMessage.includes('does not exist') ||
+          errorMessage.includes('unknown column') ||
+          errorMessage.includes('undefined column') ||
+          error?.code === 'P2001' || 
+          error?.code === 'P2011' ||
+          error?.code === '42703' || // PostgreSQL error code for undefined column
+          error?.code?.startsWith('P') // Any Prisma error code
+        
+        if (isColumnError) {
+          console.warn('New columns not found, updating entry without entryHour/entryMinute. Error:', error?.message)
+          try {
+            timeEntry = await prisma.timeEntry.update({
+              where: { id },
+              data: baseData,
+              include: {
+                project: true,
+                assignee: true
+              }
+            })
+          } catch (retryError) {
+            // If retry also fails, throw the original error
+            throw error
           }
-        })
+        } else {
+          throw error
+        }
       } else {
         throw error
       }
