@@ -5,13 +5,12 @@ NODE_ENV = "production"
 NIXPACKS_NODE_VERSION = "20"
 
 [phases.setup]
-nixPkgs = ["nodejs_20", "corepack"]
+nixPkgs = ["nodejs_20"]
 
 [phases.install]
 dependsOn = ["setup"]
 cmds = [
-    "corepack enable",
-    "corepack prepare pnpm@latest --activate",
+    "npm install -g pnpm",
     "pnpm install --frozen-lockfile"
 ]
 cacheDirectories = ["node_modules", ".pnpm-store"]
