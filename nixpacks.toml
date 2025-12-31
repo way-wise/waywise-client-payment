@@ -1,0 +1,28 @@
+# Nixpacks configuration for Node.js with pnpm and Prisma
+
+[variables]
+NODE_ENV = "production"
+NIXPACKS_NODE_VERSION = "20"
+
+[phases.setup]
+nixPkgs = ["nodejs_20-slim", "corepack"]
+
+[phases.install]
+dependsOn = ["setup"]
+cmds = [
+    "corepack enable",
+    "corepack prepare pnpm@latest --activate",
+    "pnpm install --frozen-lockfile"
+]
+cacheDirectories = ["node_modules", ".pnpm-store"]
+
+[phases.build]
+dependsOn = ["install"]
+cmds = [
+    "npx prisma generate",
+    "npx prisma migrate deploy",
+    "pnpm build"
+]
+
+[start]
+cmd = "pnpm start"
