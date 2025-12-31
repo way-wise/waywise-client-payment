@@ -5,7 +5,7 @@ NODE_ENV = "production"
 NIXPACKS_NODE_VERSION = "20"
 
 [phases.setup]
-nixPkgs = ["nodejs_20-slim", "corepack"]
+nixPkgs = ["nodejs_20", "corepack"]
 
 [phases.install]
 dependsOn = ["setup"]
